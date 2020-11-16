@@ -29,13 +29,52 @@ enum TestEnum<T, U, V> {
 
 ## Delegate
 
-A way to delegate implementation of traits into a field. 
-Improve [ambassador](https://github.com/hobofan/ambassador) by allowing
+A way to delegate implementation of traits into a field. Improve [ambassador](https://github.com/hobofan/ambassador) by allowing
+
 * static method
 * associated const/types
 * multi-field enums
 * partial implementation
 
-## Generics
+```rust
+#[delegate_trait_remote]
+trait Display {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error>;
+}
+
+#[derive(Delegate)]
+#[delegate(std::fmt::Display)]
+struct P<T> {
+    #[target]
+    pub name: String,
+    pub value: T
+}
+
+#[derive(Delegate)]
+#[delegate(std::fmt::Display)]
+enum E<T, U> {
+    A(T, #[target] i32, i32, i32, i32),
+    B(Ipv4Addr),
+    C{x: T, #[target] y: U}
+}
+
+#[derive(Delegate)]
+#[partial_delegate(std::fmt::Display)]
+struct V<T> {
+    #[target]
+    pub name: String,
+    pub value: T
+}
+
+impl<T> std::fmt::Display for V<T> {
+    partial_derive_Display_V!();
+}
+```
+
+## BinarySerializable
+
+A serialize scheme using nom as input deserializer & byte-order as output serializer.
+
+## [WIP] Generics
 
 A mimic of GHC.Generics in Rust. Can be derived from `syn` structures.
