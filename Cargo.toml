@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "generic_instance_derive",
+    "delegate_derive",
+    "syn_generics",
+    "lib_main",
+]

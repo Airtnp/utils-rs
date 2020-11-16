@@ -1,0 +1,12 @@
+[package]
+name = "syn_generics"
+version = "0.1.0"
+authors = ["Liran Xiao <lrxiao@ucla.edu>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+syn = { version = "1.0", features = ["visit", "full", "extra-traits"] }
+synstructure = "0.12"
+generic_instance_derive = { path = "../generic_instance_derive" }

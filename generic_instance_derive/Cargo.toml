@@ -1,0 +1,26 @@
+[package]
+name = "generic_instance_derive"
+version = "0.1.0"
+authors = ["Liran Xiao <lrxiao@ucla.edu>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "generic_instance_derive"
+proc-macro = true
+
+[[test]]
+name = "tests"
+path = "tests/progress.rs"
+
+[dev-dependencies]
+trybuild = { version = "1.0", features = ["diff"] }
+
+[dependencies]
+syn = { version = "1.0", features = ["visit", "full", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+synstructure = "0.12"
+darling = "0.10"
+strfmt = "0.1"
