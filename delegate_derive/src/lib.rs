@@ -10,8 +10,8 @@ mod derive;
 mod register;
 
 use proc_macro::TokenStream;
-use quote::quote;
 use proc_macro_error::proc_macro_error;
+use quote::quote;
 
 use crate::register::build_register_trait;
 

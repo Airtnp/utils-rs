@@ -4,8 +4,8 @@ use std::fmt::Debug;
 
 #[derive(Debug, PartialEq, BinarySerializable)]
 enum EnumWithBytePrefix<T: Debug>
-    where
-        T: PartialEq + BinarySerializable,
+where
+    T: PartialEq + BinarySerializable,
 {
     #[prefix = 0]
     I(T, i64),
@@ -15,8 +15,8 @@ enum EnumWithBytePrefix<T: Debug>
 
 #[derive(Debug, PartialEq, BinarySerializable)]
 enum EnumWithCharPrefix<T: Debug>
-    where
-        T: PartialEq + BinarySerializable,
+where
+    T: PartialEq + BinarySerializable,
 {
     #[prefix = 'B']
     I(T, i64),

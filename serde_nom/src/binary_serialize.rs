@@ -59,16 +59,16 @@ pub trait BinarySerializable {
         all_input: &'a [u8],
         input: &'a [u8],
     ) -> IResult<&'a [u8], Self, VerboseError<&'a [u8]>>
-        where
-            Self: Sized;
+    where
+        Self: Sized;
     fn serialize<W>(&self, wrt: &mut W) -> Result<(), std::io::Error>
-        where
-            W: WriteBytesExt;
+    where
+        W: WriteBytesExt;
     fn deserialize_with<'a>(
         input: (&'a [u8], &'a [u8]),
     ) -> IResult<(&'a [u8], &'a [u8]), Self, VerboseError<(&'a [u8], &'a [u8])>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         let (rest, v) = Self::deserialize(input.0, input.1).map_err(|e| match e {
             nom::Err::Error(e) => {
@@ -113,16 +113,16 @@ impl<T: BinarySerializable> BinarySerializable for Box<T> {
         all_input: &'a [u8],
         input: &'a [u8],
     ) -> IResult<&'a [u8], Self, VerboseError<&'a [u8]>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         let (input, value) = T::deserialize(all_input, input)?;
         Ok((input, Box::new(value)))
     }
 
     fn serialize<W>(&self, wrt: &mut W) -> Result<(), Error>
-        where
-            W: WriteBytesExt,
+    where
+        W: WriteBytesExt,
     {
         self.as_ref().serialize(wrt)
     }
@@ -133,8 +133,8 @@ impl<T: BinarySerializable, U: BinarySerializable> BinarySerializable for (T, U)
         all_input: &'a [u8],
         input: &'a [u8],
     ) -> IResult<&'a [u8], Self, VerboseError<&'a [u8]>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         let (input, t) = T::deserialize(all_input, input)?;
         let (input, u) = U::deserialize(all_input, input)?;
@@ -142,8 +142,8 @@ impl<T: BinarySerializable, U: BinarySerializable> BinarySerializable for (T, U)
     }
 
     fn serialize<W>(&self, wrt: &mut W) -> Result<(), Error>
-        where
-            W: WriteBytesExt,
+    where
+        W: WriteBytesExt,
     {
         self.0.serialize(wrt)?;
         self.1.serialize(wrt)
@@ -155,16 +155,16 @@ impl<T: BinarySerializable + Float> BinarySerializable for OrderedFloat<T> {
         all_input: &'a [u8],
         input: &'a [u8],
     ) -> IResult<&'a [u8], Self, VerboseError<&'a [u8]>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         let (input, f) = T::deserialize(all_input, input)?;
         Ok((input, OrderedFloat::from(f)))
     }
 
     fn serialize<W>(&self, wrt: &mut W) -> Result<(), Error>
-        where
-            W: WriteBytesExt,
+    where
+        W: WriteBytesExt,
     {
         self.0.serialize(wrt)
     }

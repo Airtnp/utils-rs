@@ -163,7 +163,7 @@ impl ImplTraitFunction {
         s: &String,
         vi: &VariantInfo,
         expr: Option<proc_macro2::TokenStream>,
-        named_expr: Option<proc_macro2::TokenStream>
+        named_expr: Option<proc_macro2::TokenStream>,
     ) -> Result<proc_macro2::TokenStream, syn::Error> {
         let self_ident = vi.ast().ident;
         let self_pat = if let Some(prefix) = vi.prefix {
@@ -214,10 +214,10 @@ impl ImplTraitFunction {
         let sig: Signature = syn::parse_str(self.def.as_str())?;
         let mut sig_static = true;
         if let Some(FnArg::Receiver(Receiver {
-                                        ref reference,
-                                        ref mutability,
-                                        ..
-                                    })) = sig.receiver()
+            ref reference,
+            ref mutability,
+            ..
+        })) = sig.receiver()
         {
             sig_static = false;
             if reference.is_none() {
@@ -240,11 +240,13 @@ impl ImplTraitFunction {
                         Self::parse_field(expr, idx, bi).and_then(|t| {
                             let named_t = match vi.ast().fields {
                                 Fields::Unit => unreachable!(),
-                                Fields::Unnamed(..) => { quote! { (#t) } },
+                                Fields::Unnamed(..) => {
+                                    quote! { (#t) }
+                                }
                                 Fields::Named(..) => {
                                     let ident = bi.ast().ident.as_ref().unwrap();
-                                    quote!{ #ident : #t }
-                                },
+                                    quote! { #ident : #t }
+                                }
                             };
                             let sep: proc_macro2::TokenStream = syn::parse_str(
                                 v.sep.as_ref().map_or(DEFAULT_EXPR_SEP, String::as_str),
@@ -264,7 +266,9 @@ impl ImplTraitFunction {
             let ret = v
                 .ret
                 .as_ref()
-                .map_or(Ok(quote! {}), |r| Self::parse_ret(r, vi, Some(exprs), Some(named_exprs)))
+                .map_or(Ok(quote! {}), |r| {
+                    Self::parse_ret(r, vi, Some(exprs), Some(named_exprs))
+                })
                 .unwrap_or_else(|e| e.to_compile_error());
             quote! {
                 #ret
@@ -275,9 +279,7 @@ impl ImplTraitFunction {
         // like default() -> Self
         if sig_static && self.expr.is_some() {
             let v = self.expr.as_ref().unwrap();
-            let output = s.variants().iter().next().map(|vi| {
-                handle_expr(v, vi)
-            });
+            let output = s.variants().iter().next().map(|vi| handle_expr(v, vi));
             return Ok(quote! {
                 #sig {
                     #output
@@ -320,11 +322,10 @@ impl ImplTraitFunction {
             })
         });
 
-        let exprs = self.expr.as_ref().map(|v| {
-            s.each_variant(|vi| {
-                handle_expr(v, vi)
-            })
-        });
+        let exprs = self
+            .expr
+            .as_ref()
+            .map(|v| s.each_variant(|vi| handle_expr(v, vi)));
 
         let output = if exprs.is_some() { &exprs } else { &stmts };
 

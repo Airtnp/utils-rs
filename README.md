@@ -31,7 +31,7 @@ enum TestEnum<T, U, V> {
 
 A way to delegate implementation of traits into a field. Improve [ambassador](https://github.com/hobofan/ambassador) by allowing
 
-* static method
+* static method (requires a non-empty target)
 * associated const/types
 * multi-field enums
 * partial implementation
@@ -75,6 +75,45 @@ impl<T> std::fmt::Display for V<T> {
 
 A serialize scheme using nom as input deserializer & byte-order as output serializer.
 
-## [WIP] Generics
+## Generics
 
-A mimic of GHC.Generics in Rust. Can be derived from `syn` structures.
+A mimic of GHC.Generics in Rust. Use `syn` structures to derive it.
+
+```rust
+#[derive(SynGeneric)]
+pub(crate) enum List<'a, T> {
+    Nil,
+    Cons(T, Box<List<'a, T>>),
+    WTF { x: T, y: Vec<&'a T> },
+}
+// ===>
+type Rep<'a, T> = MetaInfo<
+    DataType,
+    ListInfo,
+    Sum<
+        MetaInfo<Constructor, ListNilInfo, Unit>,
+        Sum<
+            MetaInfo<
+                Constructor,
+                ListConsInfo,
+                Product<
+                    MetaInfo<Selector, ListCons0Info, Constant<Recursion, i32>>,
+                    MetaInfo<
+                        Selector,
+                        ListCons1Info,
+                        Constant<Recursion, Box<List<'a, i32>>>,
+                    >,
+                >,
+            >,
+            MetaInfo<
+                Constructor,
+                ListWTFInfo,
+                Product<
+                    MetaInfo<Selector, ListWTFxInfo, Constant<Recursion, i32>>,
+                    MetaInfo<Selector, ListWTFyInfo, Constant<Recursion, Vec<&'a i32>>>,
+                >,
+            >,
+        >,
+    >,
+>;
+```

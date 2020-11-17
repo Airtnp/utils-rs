@@ -4,13 +4,13 @@ use nom::IResult;
 
 pub trait TextSerializable {
     fn parse_text(input: &str) -> IResult<&str, Self, VerboseError<&str>>
-        where
-            Self: Sized;
+    where
+        Self: Sized;
     fn to_builder(&self) -> String;
     fn into_builder(self) -> String;
     fn parse_only(input: &str) -> Result<Self, String>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         // enable lifetime elision (https://doc.rust-lang.org/nomicon/lifetime-elision.html)
         // let eof: fn(&str) -> IResult<&str, ()> = |input: &str| {

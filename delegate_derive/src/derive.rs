@@ -1,13 +1,12 @@
-
 use proc_macro::TokenStream;
-use proc_macro2::{TokenStream as TokenStream2};
+use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, DeriveInput, Path, Attribute, spanned::Spanned, Type};
-use synstructure::{Structure, BindStyle, AddBounds};
+use syn::{parse_macro_input, spanned::Spanned, Attribute, DeriveInput, Path, Type};
+use synstructure::{AddBounds, BindStyle, Structure};
 
 struct DelegateTraitDetail {
     pub(crate) path: Path,
-    pub(crate) partial: bool
+    pub(crate) partial: bool,
 }
 
 impl DelegateTraitDetail {
@@ -20,9 +19,11 @@ impl DelegateTraitDetail {
             quote::format_ident!("partial_derive_{}_{}", trait_ident, s.ast().ident);
         let path = &self.path;
         // potential import clause
-        let import_clause =
-            if path.segments.len() == 1 { quote!{} }
-            else { quote! { use #path as #trait_ident; } };
+        let import_clause = if path.segments.len() == 1 {
+            quote! {}
+        } else {
+            quote! { use #path as #trait_ident; }
+        };
 
         // eliminate modifier
         s.bind_with(|_bi| BindStyle::Move);
@@ -31,49 +32,60 @@ impl DelegateTraitDetail {
         // TODO: add a modifier on helper attribute to opt this
         s.add_bounds(AddBounds::Fields);
 
-        let (patterns, ty): (Vec<TokenStream2>, Vec<&Type>) =
-            s.variants_mut().iter_mut()
-                .map(|vi| {
-                    // for 1-size binding, just forward
-                    if vi.bindings().len() == 1 {
-                        let pat = vi.pat();
-                        let binding = &vi.bindings()[0].binding;
-                        let ty = &vi.bindings()[0].ast().ty;
-                        (quote! { #binding+{#pat} }, ty)
-                    } else {
-                        // don't filter out the fields, since the pattern is imprecise
-                        // (__binding_1, ..), (.., __binding_2, ..)...
-                        /*
-                        vi.filter(|bi|
-                            bi.ast().attrs.iter()
+        let (patterns, ty): (Vec<TokenStream2>, Vec<&Type>) = s
+            .variants_mut()
+            .iter_mut()
+            .map(|vi| {
+                // for 1-size binding, just forward
+                if vi.bindings().len() == 1 {
+                    let pat = vi.pat();
+                    let binding = &vi.bindings()[0].binding;
+                    let ty = &vi.bindings()[0].ast().ty;
+                    (quote! { #binding+{#pat} }, ty)
+                } else {
+                    // don't filter out the fields, since the pattern is imprecise
+                    // (__binding_1, ..), (.., __binding_2, ..)...
+                    /*
+                    vi.filter(|bi|
+                        bi.ast().attrs.iter()
+                            .find(|a| a.path.is_ident("target"))
+                            .is_some());
+                     */
+                    // search for #[target] fields
+                    let targets = vi
+                        .bindings()
+                        .iter()
+                        .filter(|v| {
+                            v.ast()
+                                .attrs
+                                .iter()
                                 .find(|a| a.path.is_ident("target"))
-                                .is_some());
-                         */
-                        // search for #[target] fields
-                        let targets = vi.bindings().iter()
-                            .filter(|v|
-                                v.ast().attrs.iter()
-                                    .find(|a| a.path.is_ident("target"))
-                                    .is_some())
-                            .collect::<Vec<_>>();
-                        if targets.len() != 1 {
-                            abort!(vi.ast().fields.span(), "Expect exactly one target field in struct/enum")
-                        } else {
-                            let binding = &targets[0].binding;
-                            let pat = vi.pat();
-                            let ty = &targets[0].ast().ty;
-                            (quote! { #binding+{#pat} }, ty)
-                        }
+                                .is_some()
+                        })
+                        .collect::<Vec<_>>();
+                    if targets.len() != 1 {
+                        abort!(
+                            vi.ast().fields.span(),
+                            "Expect exactly one target field in struct/enum"
+                        )
+                    } else {
+                        let binding = &targets[0].binding;
+                        let pat = vi.pat();
+                        let ty = &targets[0].ast().ty;
+                        (quote! { #binding+{#pat} }, ty)
                     }
-                })
-                .unzip();
+                }
+            })
+            .unzip();
 
         // We can't test if all associated type is same (T::Item, U::Item)
         // Therefore we just use the first ty for associated type
         // let is_all_same_type = ty.windows(2).all(|w| w[0] == w[1]);
-        let ty =
-            if let Some(ty) = ty.iter().next() { ty }
-            else { unreachable!() };
+        let ty = if let Some(ty) = ty.iter().next() {
+            ty
+        } else {
+            unreachable!()
+        };
         let mut pat = TokenStream2::new();
         patterns.iter().enumerate().for_each(|(idx, e)| {
             e.to_tokens(&mut pat);
@@ -102,26 +114,28 @@ impl DelegateTraitDetail {
 
 #[derive(Default)]
 struct DelegateTraits {
-    pub(crate) traits: Vec<DelegateTraitDetail>
+    pub(crate) traits: Vec<DelegateTraitDetail>,
 }
 
 impl DelegateTraits {
     fn from_attributes(v: Vec<&Attribute>, partial: bool) -> Vec<DelegateTraitDetail> {
-        v.into_iter().map(|attr| {
-            let path: Result<Path, syn::Error> = attr.parse_args();
-            if let Ok(t) = path {
-                if t.segments.is_empty() {
-                    abort!(attr.span(), "Expect non-empty list in delegate() traits")
-                } else {
-                    DelegateTraitDetail {
-                        path: t,
-                        partial
+        v.into_iter()
+            .map(|attr| {
+                let path: Result<Path, syn::Error> = attr.parse_args();
+                if let Ok(t) = path {
+                    if t.segments.is_empty() {
+                        abort!(attr.span(), "Expect non-empty list in delegate() traits")
+                    } else {
+                        DelegateTraitDetail { path: t, partial }
                     }
+                } else {
+                    abort!(
+                        attr.span(),
+                        "Expect path-like attribute names in delegate() traits"
+                    )
                 }
-            } else {
-                abort!(attr.span(), "Expect path-like attribute names in delegate() traits")
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     pub fn add_attributes_partial(&mut self, v: Vec<&Attribute>) {
@@ -133,11 +147,7 @@ impl DelegateTraits {
     }
 
     pub fn impl_trait(&self, s: &mut Structure) -> TokenStream2 {
-        self.traits.iter()
-            .map(|t| {
-                t.impl_trait(s)
-            })
-            .collect()
+        self.traits.iter().map(|t| t.impl_trait(s)).collect()
     }
 }
 
@@ -173,9 +183,9 @@ pub fn delegate_derive(input: TokenStream) -> TokenStream {
 
 #[cfg(test)]
 mod test {
-    use syn::DeriveInput;
-    use crate::derive::{delegate_derive, DelegateTraits, DelegateTraitDetail};
+    use crate::derive::{delegate_derive, DelegateTraitDetail, DelegateTraits};
     use quote::ToTokens;
+    use syn::DeriveInput;
     use synstructure::{unpretty_print, Structure};
 
     #[test]
@@ -195,8 +205,8 @@ mod test {
         let dt = DelegateTraits {
             traits: vec![DelegateTraitDetail {
                 path: syn::parse_str("std::fmt::Debug").unwrap(),
-                partial: false
-            }]
+                partial: false,
+            }],
         };
         let output = dt.impl_trait(&mut s);
         println!("{}", unpretty_print(output.to_string()));

@@ -7,8 +7,8 @@ struct VoidStruct;
 
 #[derive(Debug, PartialEq, BinarySerializable)]
 struct NamedStruct<T: Debug>
-    where
-        T: PartialEq + BinarySerializable,
+where
+    T: PartialEq + BinarySerializable,
 {
     i: T,
     j: i64,
@@ -16,8 +16,8 @@ struct NamedStruct<T: Debug>
 
 #[derive(Debug, PartialEq, BinarySerializable)]
 struct UnNamedStruct<T: Debug>(T, i64)
-    where
-        T: PartialEq + BinarySerializable;
+where
+    T: PartialEq + BinarySerializable;
 
 fn main() -> std::io::Result<()> {
     let vs = VoidStruct {};

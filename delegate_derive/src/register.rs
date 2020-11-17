@@ -56,17 +56,19 @@ use quote::quote;
 pub fn build_register_trait(original_item: &syn::ItemTrait) -> proc_macro2::TokenStream {
     // XXX: we can't use path here
     let trait_ident = &original_item.ident;
-    let derive_macro_name: syn::Ident =
-        quote::format_ident!("derive_impl_{}_item", trait_ident);
+    let derive_macro_name: syn::Ident = quote::format_ident!("derive_impl_{}_item", trait_ident);
 
     let trait_impls: Vec<proc_macro2::TokenStream> = original_item
         .items
         .iter()
         .map(|n| match n {
             syn::TraitItem::Method(ref method) => {
-                if method.sig.receiver().is_some() { build_method(method, trait_ident) }
-                else { build_static_method(method, trait_ident) }
-            },
+                if method.sig.receiver().is_some() {
+                    build_method(method, trait_ident)
+                } else {
+                    build_static_method(method, trait_ident)
+                }
+            }
             syn::TraitItem::Const(ref cst) => build_const(cst, trait_ident),
             syn::TraitItem::Type(ref ty) => build_type(ty, trait_ident),
             _ => unimplemented!(),
@@ -106,7 +108,10 @@ fn build_type(ty: &syn::TraitItemType, trait_name: &syn::Ident) -> proc_macro2::
     }
 }
 
-fn build_static_method(method: &syn::TraitItemMethod, trait_name: &syn::Ident) -> proc_macro2::TokenStream {
+fn build_static_method(
+    method: &syn::TraitItemMethod,
+    trait_name: &syn::Ident,
+) -> proc_macro2::TokenStream {
     let method_sig = &method.sig;
     let _binding_modifier = collect_modifier(&method);
 
@@ -122,14 +127,18 @@ fn build_static_method(method: &syn::TraitItemMethod, trait_name: &syn::Ident) -
     }
 }
 
-fn build_method(method: &syn::TraitItemMethod, _trait_name: &syn::Ident) -> proc_macro2::TokenStream {
+fn build_method(
+    method: &syn::TraitItemMethod,
+    _trait_name: &syn::Ident,
+) -> proc_macro2::TokenStream {
     let method_sig = &method.sig;
     let _binding_modifier = collect_modifier(&method);
 
     let method_invocation = build_method_invocation(
         &method,
         // synstructure name => __binding_n
-        &quote!($name));
+        &quote!($name),
+    );
 
     quote! {
         #method_sig {
@@ -151,7 +160,10 @@ fn build_method_invocation(
     method_invocation
 }
 
-fn build_static_method_invocation(static_method: &syn::TraitItemMethod, trait_name: &syn::Ident) -> proc_macro2::TokenStream {
+fn build_static_method_invocation(
+    static_method: &syn::TraitItemMethod,
+    trait_name: &syn::Ident,
+) -> proc_macro2::TokenStream {
     let method_ident = &static_method.sig.ident;
     let argument_list = collect_method_args(static_method);
 
@@ -159,8 +171,13 @@ fn build_static_method_invocation(static_method: &syn::TraitItemMethod, trait_na
     method_invocation
 }
 
-fn collect_method_args(method: &syn::TraitItemMethod) -> syn::punctuated::Punctuated<&Box<syn::Pat>, syn::token::Comma> {
-    method.sig.inputs.iter()
+fn collect_method_args(
+    method: &syn::TraitItemMethod,
+) -> syn::punctuated::Punctuated<&Box<syn::Pat>, syn::token::Comma> {
+    method
+        .sig
+        .inputs
+        .iter()
         .filter_map(|fn_arg| match fn_arg {
             syn::FnArg::Receiver(_) => None,
             syn::FnArg::Typed(pat_type) => Some(&pat_type.pat),
@@ -169,7 +186,12 @@ fn collect_method_args(method: &syn::TraitItemMethod) -> syn::punctuated::Punctu
 }
 
 fn collect_modifier(method: &syn::TraitItemMethod) -> proc_macro2::TokenStream {
-    if let Some(syn::FnArg::Receiver(syn::Receiver { ref reference, ref mutability, .. })) = method.sig.receiver() {
+    if let Some(syn::FnArg::Receiver(syn::Receiver {
+        ref reference,
+        ref mutability,
+        ..
+    })) = method.sig.receiver()
+    {
         if reference.is_none() {
             quote! { mut }
         } else if mutability.is_some() {
@@ -177,5 +199,7 @@ fn collect_modifier(method: &syn::TraitItemMethod) -> proc_macro2::TokenStream {
         } else {
             quote! { ref }
         }
-    } else { quote! {} }
+    } else {
+        quote! {}
+    }
 }

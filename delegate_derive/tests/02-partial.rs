@@ -10,7 +10,7 @@ trait Display {
 struct P<T> {
     #[target]
     pub name: String,
-    pub value: T
+    pub value: T,
 }
 
 impl<T> std::fmt::Display for P<T> {
@@ -18,6 +18,9 @@ impl<T> std::fmt::Display for P<T> {
 }
 
 pub fn main() {
-    let p = P { name: "P".to_string(), value: 1i32 };
+    let p = P {
+        name: "P".to_string(),
+        value: 1i32,
+    };
     println!("p: {}", p);
 }

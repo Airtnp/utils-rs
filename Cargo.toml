@@ -4,6 +4,7 @@ members = [
     "generic_instance_derive",
     "delegate_derive",
     "syn_generics",
+    "syn_generics_derive",
     "serde_nom",
     "serde_nom_derive",
     "lib_main",

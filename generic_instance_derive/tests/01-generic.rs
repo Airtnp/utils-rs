@@ -16,7 +16,7 @@ struct TestStructNamed<T, U> {
 enum TestEnum<T, U, V> {
     Foo(i32, T),
     Bar(i64, i32),
-    Baz(TestStructUnnamed<U, V>)
+    Baz(TestStructUnnamed<U, V>),
 }
 
 fn main() {
