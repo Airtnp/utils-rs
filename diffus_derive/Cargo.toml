@@ -1,0 +1,44 @@
+[package]
+name = "diffus-derive"
+version = "0.9.1"
+authors = [
+    "Jim Holmström <jim.holmstroem@gmail.com>",
+    "Johan Gardell <736172+gardell@users.noreply.github.com>",
+]
+
+description = "Finds the difference between two instances of any data structure. Supports derive on structs and enums."
+
+homepage = "https://github.com/distil/diffus"
+repository = "https://github.com/distil/diffus"
+documentation = "https://docs.rs/diffus-derive"
+
+readme = "../README.md"
+
+keywords = [ "algorithm", "diff", "difference", "data", "data-structure" ]
+categories = [ "algorithms", "data-structures" ]
+publish = [ "crates-io" ]
+
+license = "Apache-2.0"
+
+edition = "2018"
+
+
+[lib]
+proc-macro = true
+
+[[test]]
+name = "tests"
+path = "tests/progress.rs"
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = "1.0"
+serde = { version = "*", optional = true }
+
+[dev-dependencies]
+trybuild = "1.0.35"
+diffus = "0.9.1"
+
+[features]
+serialize-impl = ["serde"]

@@ -7,5 +7,6 @@ members = [
     "syn_generics_derive",
     "serde_nom",
     "serde_nom_derive",
+    "diffus_derive",
     "lib_main",
 ]
