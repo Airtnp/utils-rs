@@ -7,30 +7,22 @@ use proc_macro::TokenStream;
 
 use proc_macro2::{Ident, Span};
 use quote::{quote, ToTokens};
-use syn::parse::Parse;
 use syn::{
-    parse_macro_input, Attribute, Data, DataEnum, DataStruct, DeriveInput, Error, Field, Fields,
+    parse::Parse, parse_macro_input, Attribute, Data, DataEnum, DataStruct, DeriveInput, Error, Field, Fields,
     Generics, Type,
 };
 
-fn type_str(ty: &Type) -> String {
-    format!("{}", ty.to_token_stream())
-}
+fn type_str(ty: &Type) -> String { format!("{}", ty.to_token_stream()) }
 
 struct FieldsWrapper<'a>(&'a Fields);
 
 impl<'a> FieldsWrapper<'a> {
-    pub fn new(f: &'a Fields) -> Self {
-        FieldsWrapper(f)
-    }
+    pub fn new(f: &'a Fields) -> Self { FieldsWrapper(f) }
 
     pub fn to_name_vec(&self) -> Vec<Ident> {
         let f = self.0;
         match f {
-            Fields::Named(_) => f
-                .iter()
-                .map(|f| f.ident.as_ref().unwrap().clone())
-                .collect(),
+            Fields::Named(_) => f.iter().map(|f| f.ident.as_ref().unwrap().clone()).collect(),
             Fields::Unnamed(_) => (0..f.len())
                 .map(|idx| Ident::new(format!("f{}", idx).as_str(), Span::call_site()))
                 .collect(),
@@ -89,21 +81,13 @@ pub fn bs_derive(input: TokenStream) -> TokenStream {
     let tokens = match &input.data {
         syn::Data::Struct(s) => bs_derive_struct(input_ident, generics, s),
         syn::Data::Enum(e) => bs_derive_enum(input_ident, generics, e),
-        _ => {
-            return Error::new(Span::call_site(), "unimplemented")
-                .to_compile_error()
-                .into()
-        }
+        _ => return Error::new(Span::call_site(), "unimplemented").to_compile_error().into(),
     };
 
     tokens.into()
 }
 
-fn bs_derive_enum(
-    ident: &Ident,
-    generics: &mut Generics,
-    s: &DataEnum,
-) -> proc_macro2::TokenStream {
+fn bs_derive_enum(ident: &Ident, generics: &mut Generics, s: &DataEnum) -> proc_macro2::TokenStream {
     let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
 
     let ser_fields = s.variants.iter().map(|t| {
@@ -127,8 +111,7 @@ fn bs_derive_enum(
                     }
                 }
             }
-            Ok(_) => Error::new_spanned(var_attr, "attrs should be in the format of named value")
-                .to_compile_error(),
+            Ok(_) => Error::new_spanned(var_attr, "attrs should be in the format of named value").to_compile_error(),
             Err(e) => e.to_compile_error(),
         }
     });
@@ -143,8 +126,7 @@ fn bs_derive_enum(
                     (#lit as u8).serialize(wrt)?;
                 }
             }
-            Ok(_) => Error::new_spanned(var_attr, "attrs should be in the format of named value")
-                .to_compile_error(),
+            Ok(_) => Error::new_spanned(var_attr, "attrs should be in the format of named value").to_compile_error(),
             Err(e) => e.to_compile_error(),
         };
 
@@ -164,10 +146,10 @@ fn bs_derive_enum(
                 )
             }
             Fields::Unnamed(_) => {
-                let match_i = (0..t.fields.len())
-                    .map(|idx| Ident::new(format!("field_{}", idx).as_str(), Span::call_site()));
-                let de_i = (0..t.fields.len())
-                    .map(|idx| Ident::new(format!("field_{}", idx).as_str(), Span::call_site()));
+                let match_i =
+                    (0..t.fields.len()).map(|idx| Ident::new(format!("field_{}", idx).as_str(), Span::call_site()));
+                let de_i =
+                    (0..t.fields.len()).map(|idx| Ident::new(format!("field_{}", idx).as_str(), Span::call_site()));
                 (
                     quote! {
                         ( #(ref #match_i,)* )
@@ -179,13 +161,10 @@ fn bs_derive_enum(
                     },
                 )
             }
-            Fields::Unit => (
-                quote! {},
-                quote! {
-                    #var_attr_de
-                    Ok(())
-                },
-            ),
+            Fields::Unit => (quote! {}, quote! {
+                #var_attr_de
+                Ok(())
+            }),
         };
 
         quote! {
@@ -232,11 +211,7 @@ fn bs_derive_enum(
     }
 }
 
-fn bs_derive_struct(
-    ident: &Ident,
-    generics: &mut Generics,
-    s: &DataStruct,
-) -> proc_macro2::TokenStream {
+fn bs_derive_struct(ident: &Ident, generics: &mut Generics, s: &DataStruct) -> proc_macro2::TokenStream {
     let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
     let (ser, de, ser_ret) = bs_derive_fields(&s.fields);
     let ret = match &s.fields {
@@ -286,8 +261,7 @@ fn bs_derive_fields(
             quote! {},
         ),
         Fields::Unnamed(_) => {
-            let ser_i = (0..fields.len())
-                .map(|idx| Ident::new(format!("field_{}", idx).as_str(), Span::call_site()));
+            let ser_i = (0..fields.len()).map(|idx| Ident::new(format!("field_{}", idx).as_str(), Span::call_site()));
             let ser_fields = fields.iter().enumerate().map(|(idx, f)| {
                 let field_ident = Ident::new(format!("field_{}", idx).as_str(), Span::call_site());
 

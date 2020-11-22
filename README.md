@@ -42,12 +42,18 @@ trait Display {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error>;
 }
 
+#[delegate_impl_remote]
+impl String {
+    pub fn as_bytes(&self) -> &[u8] {}
+}
+
 #[derive(Delegate)]
-#[delegate(std::fmt::Display)]
+#[partial_delegate(std::fmt::Display)]
+#[partial_delegate(String)]
 struct P<T> {
     #[target]
     pub name: String,
-    pub value: T
+    pub value: T,
 }
 
 #[derive(Delegate)]
@@ -64,6 +70,11 @@ struct V<T> {
     #[target]
     pub name: String,
     pub value: T
+}
+
+impl<T> P<T> {
+    // as_bytes()...
+    partial_impl_String_P!();
 }
 
 impl<T> std::fmt::Display for V<T> {
@@ -117,3 +128,7 @@ type Rep<'a, T> = MetaInfo<
     >,
 >;
 ```
+
+## JustDiff
+
+A simple diff structure directly from PartialEq instances.

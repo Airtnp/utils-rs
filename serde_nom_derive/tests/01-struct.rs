@@ -37,9 +37,7 @@ fn main() -> std::io::Result<()> {
 
     assert_eq!(
         vs,
-        VoidStruct::deserialize(wrt_vs.as_slice(), wrt_vs.as_slice())
-            .unwrap()
-            .1
+        VoidStruct::deserialize(wrt_vs.as_slice(), wrt_vs.as_slice()).unwrap().1
     );
     assert_eq!(
         ns,

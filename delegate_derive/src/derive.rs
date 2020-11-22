@@ -12,11 +12,10 @@ struct DelegateTraitDetail {
 impl DelegateTraitDetail {
     pub fn impl_trait(&self, s: &mut Structure) -> TokenStream2 {
         let trait_ident = &self.path.segments.iter().last().unwrap().ident;
-        let item_derive_macro: syn::Ident =
-            quote::format_ident!("derive_impl_{}_item", trait_ident);
+        let item_derive_macro: syn::Ident = quote::format_ident!("derive_impl_{}_item", trait_ident);
         // TODO: add a attribute meta to indicate the name
         let partial_derive_macro_name: syn::Ident =
-            quote::format_ident!("partial_derive_{}_{}", trait_ident, s.ast().ident);
+            quote::format_ident!("partial_impl_{}_{}", trait_ident, s.ast().ident);
         let path = &self.path;
         // potential import clause
         let import_clause = if path.segments.len() == 1 {
@@ -55,19 +54,10 @@ impl DelegateTraitDetail {
                     let targets = vi
                         .bindings()
                         .iter()
-                        .filter(|v| {
-                            v.ast()
-                                .attrs
-                                .iter()
-                                .find(|a| a.path.is_ident("target"))
-                                .is_some()
-                        })
+                        .filter(|v| v.ast().attrs.iter().find(|a| a.path.is_ident("target")).is_some())
                         .collect::<Vec<_>>();
                     if targets.len() != 1 {
-                        abort!(
-                            vi.ast().fields.span(),
-                            "Expect exactly one target field in struct/enum"
-                        )
+                        abort!(vi.ast().fields.span(), "Expect exactly one target field in struct/enum")
                     } else {
                         let binding = &targets[0].binding;
                         let pat = vi.pat();
@@ -129,22 +119,15 @@ impl DelegateTraits {
                         DelegateTraitDetail { path: t, partial }
                     }
                 } else {
-                    abort!(
-                        attr.span(),
-                        "Expect path-like attribute names in delegate() traits"
-                    )
+                    abort!(attr.span(), "Expect path-like attribute names in delegate() traits")
                 }
             })
             .collect()
     }
 
-    pub fn add_attributes_partial(&mut self, v: Vec<&Attribute>) {
-        self.traits.extend(Self::from_attributes(v, true))
-    }
+    pub fn add_attributes_partial(&mut self, v: Vec<&Attribute>) { self.traits.extend(Self::from_attributes(v, true)) }
 
-    pub fn add_attributes_full(&mut self, v: Vec<&Attribute>) {
-        self.traits.extend(Self::from_attributes(v, false))
-    }
+    pub fn add_attributes_full(&mut self, v: Vec<&Attribute>) { self.traits.extend(Self::from_attributes(v, false)) }
 
     pub fn impl_trait(&self, s: &mut Structure) -> TokenStream2 {
         self.traits.iter().map(|t| t.impl_trait(s)).collect()
@@ -160,11 +143,7 @@ pub fn delegate_derive(input: TokenStream) -> TokenStream {
     };
 
     // Parse the attributes
-    let full_attrs: Vec<&Attribute> = input
-        .attrs
-        .iter()
-        .filter(|n| n.path.is_ident("delegate"))
-        .collect();
+    let full_attrs: Vec<&Attribute> = input.attrs.iter().filter(|n| n.path.is_ident("delegate")).collect();
     let partial_attrs: Vec<&Attribute> = input
         .attrs
         .iter()

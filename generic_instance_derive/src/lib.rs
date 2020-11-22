@@ -14,10 +14,7 @@ use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use std::collections::HashMap;
 use strfmt::strfmt;
-use syn::{
-    parse_macro_input, DeriveInput, Fields, FnArg, Ident, ImplItemType, Index, Receiver, Signature,
-    TraitBound,
-};
+use syn::{parse_macro_input, DeriveInput, Fields, FnArg, Ident, ImplItemType, Index, Receiver, Signature, TraitBound};
 use synstructure::{BindStyle, BindingInfo, Structure, VariantInfo};
 
 #[derive(FromMeta, Default, Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -111,9 +108,7 @@ impl ImplTraitFunction {
             .ident
             .as_ref()
             .map(ToTokens::to_token_stream)
-            .unwrap_or(
-                Ident::new(format!("f{}", idx).as_str(), Span::call_site()).into_token_stream(),
-            )
+            .unwrap_or(Ident::new(format!("f{}", idx).as_str(), Span::call_site()).into_token_stream())
     }
 
     fn extract_field_f(vi: &VariantInfo) -> proc_macro2::TokenStream {
@@ -143,11 +138,7 @@ impl ImplTraitFunction {
         quote! { #(#n_names,)* }
     }
 
-    fn parse_field(
-        s: &String,
-        idx: usize,
-        bi: &BindingInfo,
-    ) -> Result<proc_macro2::TokenStream, syn::Error> {
+    fn parse_field(s: &String, idx: usize, bi: &BindingInfo) -> Result<proc_macro2::TokenStream, syn::Error> {
         let mut names = HashMap::with_capacity(3);
         names.insert("f".to_string(), Self::extract_f(idx, bi).to_string());
         names.insert("p".to_string(), Self::extract_p(idx, bi).to_string());
@@ -202,10 +193,7 @@ impl ImplTraitFunction {
         syn::parse_str(ret_str.as_str())
     }
 
-    pub fn impl_structure(
-        &self,
-        s: &mut Structure,
-    ) -> Result<proc_macro2::TokenStream, syn::Error> {
+    pub fn impl_structure(&self, s: &mut Structure) -> Result<proc_macro2::TokenStream, syn::Error> {
         // synstructure gen_impl will automatically add trait bounds
         // otherwise, use referenced_ty_params + bound_impl to achieve same behavior
         // also synstructure creates a const scope for hygiene implementation
@@ -248,9 +236,8 @@ impl ImplTraitFunction {
                                     quote! { #ident : #t }
                                 }
                             };
-                            let sep: proc_macro2::TokenStream = syn::parse_str(
-                                v.sep.as_ref().map_or(DEFAULT_EXPR_SEP, String::as_str),
-                            )?;
+                            let sep: proc_macro2::TokenStream =
+                                syn::parse_str(v.sep.as_ref().map_or(DEFAULT_EXPR_SEP, String::as_str))?;
                             if idx != vi.bindings().len() - 1 {
                                 Ok((quote! { #named_t #sep }, quote! { #t #sep }))
                             } else {
@@ -296,9 +283,8 @@ impl ImplTraitFunction {
                     .map(|(idx, bi)| {
                         if let Some(ref stmt) = v.stmt {
                             Self::parse_field(stmt, idx, bi).and_then(|t| {
-                                let sep: proc_macro2::TokenStream = syn::parse_str(
-                                    v.sep.as_ref().map_or(DEFAULT_STMT_SEP, String::as_str),
-                                )?;
+                                let sep: proc_macro2::TokenStream =
+                                    syn::parse_str(v.sep.as_ref().map_or(DEFAULT_STMT_SEP, String::as_str))?;
                                 if idx != vi.bindings().len() - 1 || v.ret.is_some() {
                                     Ok(quote! { #t #sep })
                                 } else {
@@ -322,10 +308,7 @@ impl ImplTraitFunction {
             })
         });
 
-        let exprs = self
-            .expr
-            .as_ref()
-            .map(|v| s.each_variant(|vi| handle_expr(v, vi)));
+        let exprs = self.expr.as_ref().map(|v| s.each_variant(|vi| handle_expr(v, vi)));
 
         let output = if exprs.is_some() { &exprs } else { &stmts };
 
@@ -465,10 +448,10 @@ impl ImplTraits {
                 .map(|t| t.to_token_stream())
                 .unwrap_or_else(|e| e.to_compile_error());
             let assoc = t.assoc_type.iter().map(|b| b.to_token_stream());
-            let func = t.func.iter().map(|b| {
-                b.impl_structure(&mut s)
-                    .unwrap_or_else(|e| e.to_compile_error())
-            });
+            let func = t
+                .func
+                .iter()
+                .map(|b| b.impl_structure(&mut s).unwrap_or_else(|e| e.to_compile_error()));
             // force evaluate since s is mutably borrowed
             let func = quote! { #(#func)* };
             s.gen_impl(quote! {

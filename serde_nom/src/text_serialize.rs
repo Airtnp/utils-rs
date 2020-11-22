@@ -1,6 +1,4 @@
-use nom::combinator::all_consuming;
-use nom::error::VerboseError;
-use nom::IResult;
+use nom::{combinator::all_consuming, error::VerboseError, IResult};
 
 pub trait TextSerializable {
     fn parse_text(input: &str) -> IResult<&str, Self, VerboseError<&str>>

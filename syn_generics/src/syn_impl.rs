@@ -73,44 +73,40 @@ impl ToGenericTokens for Field {
 impl ToGenericTokens for Fields {
     fn to_rep(&self, prefix: String, generic: Option<&Generics>) -> (TokenStream, TokenStream) {
         match self {
-            Fields::Unit => (
-                quote! {},
-                quote! {
-                    syn_generics::Unit
-                },
-            ),
-            Fields::Unnamed(FieldsUnnamed {
-                unnamed: fields, ..
-            })
-            | Fields::Named(FieldsNamed { named: fields, .. }) => fields
-                .iter()
-                .rev()
-                .enumerate()
-                .fold((quote! {}, quote! {}), |(info, ty), (idx, f)| {
-                    let new_idx = fields.len() - idx - 1;
-                    let new_prefix = if f.ident.is_some() {
-                        format!("{}{}", prefix, f.ident.as_ref().unwrap().to_string())
-                    } else {
-                        format!("{}{}", prefix, new_idx.to_string())
-                    };
-                    let info_ident =
-                        Ident::new(format!("{}Info", new_prefix).as_str(), Span::call_site());
-                    let (new_info, new_ty) = f.to_rep(new_prefix, generic);
-                    let info_impl = quote! {
-                        #new_info
-                        #info
-                    };
-                    let ty_impl = if idx == 0 {
-                        quote! {
-                            syn_generics::S1::<#info_ident, #new_ty>
-                        }
-                    } else {
-                        quote! {
-                            syn_generics::Product::<syn_generics::S1::<#info_ident, #new_ty>, #ty>
-                        }
-                    };
-                    (info_impl, ty_impl)
-                }),
+            Fields::Unit => (quote! {}, quote! {
+                syn_generics::Unit
+            }),
+            Fields::Unnamed(FieldsUnnamed { unnamed: fields, .. })
+            | Fields::Named(FieldsNamed { named: fields, .. }) => {
+                fields
+                    .iter()
+                    .rev()
+                    .enumerate()
+                    .fold((quote! {}, quote! {}), |(info, ty), (idx, f)| {
+                        let new_idx = fields.len() - idx - 1;
+                        let new_prefix = if f.ident.is_some() {
+                            format!("{}{}", prefix, f.ident.as_ref().unwrap().to_string())
+                        } else {
+                            format!("{}{}", prefix, new_idx.to_string())
+                        };
+                        let info_ident = Ident::new(format!("{}Info", new_prefix).as_str(), Span::call_site());
+                        let (new_info, new_ty) = f.to_rep(new_prefix, generic);
+                        let info_impl = quote! {
+                            #new_info
+                            #info
+                        };
+                        let ty_impl = if idx == 0 {
+                            quote! {
+                                syn_generics::S1::<#info_ident, #new_ty>
+                            }
+                        } else {
+                            quote! {
+                                syn_generics::Product::<syn_generics::S1::<#info_ident, #new_ty>, #ty>
+                            }
+                        };
+                        (info_impl, ty_impl)
+                    })
+            }
         }
     }
 
@@ -123,9 +119,7 @@ impl ToGenericTokens for Fields {
                     #p {}
                 }
             }
-            Fields::Unnamed(FieldsUnnamed {
-                unnamed: fields, ..
-            })
+            Fields::Unnamed(FieldsUnnamed { unnamed: fields, .. })
             | Fields::Named(FieldsNamed { named: fields, .. }) => {
                 // let MetaInfo(r, ..) = S1<Info, Rec0<..>>
                 if fields.len() == 1 {
@@ -137,40 +131,35 @@ impl ToGenericTokens for Fields {
                     }
                 } else {
                     // let MetaInfo(r, ..) = Product<S1., ..>
-                    let (_, unfold_product) = fields
-                        .iter()
-                        .enumerate()
-                        .fold((binding, quote! {}), |(binding, rep), (idx, f)| {
-                            if idx == fields.len() - 1{
-                                let new_rep = f.to_from_rep(prefix.clone(), binding.clone());
-                                let rep = quote! {
-                                    #rep
-                                    let syn_generics::MetaInfo(#binding, ..) = #binding;
-                                    let #binding = { #new_rep };
-                                };
-                                (binding, rep)
-                            } else {
-                                let r0 = Ident::new(
-                                    format!("r{}", idx.to_string()).as_str(),
-                                    Span::call_site()
-                                );
-                                let r1 = Ident::new(
-                                    format!("r{}", (idx + 1).to_string()).as_str(),
-                                    Span::call_site()
-                                );
-                                let new_rep = f.to_from_rep(prefix.clone(), r0.clone());
-                                let destruct_impl = quote! {
-                                    #rep
-                                    let syn_generics::Product(syn_generics::MetaInfo(#r0, ..), #r1) = #binding;
-                                    let #r0 = { #new_rep };
-                                };
-                                let new_binding = r1;
-                                (new_binding, destruct_impl)
-                            }
-                        });
+                    let (_, unfold_product) =
+                        fields
+                            .iter()
+                            .enumerate()
+                            .fold((binding, quote! {}), |(binding, rep), (idx, f)| {
+                                if idx == fields.len() - 1 {
+                                    let new_rep = f.to_from_rep(prefix.clone(), binding.clone());
+                                    let rep = quote! {
+                                        #rep
+                                        let syn_generics::MetaInfo(#binding, ..) = #binding;
+                                        let #binding = { #new_rep };
+                                    };
+                                    (binding, rep)
+                                } else {
+                                    let r0 = Ident::new(format!("r{}", idx.to_string()).as_str(), Span::call_site());
+                                    let r1 =
+                                        Ident::new(format!("r{}", (idx + 1).to_string()).as_str(), Span::call_site());
+                                    let new_rep = f.to_from_rep(prefix.clone(), r0.clone());
+                                    let destruct_impl = quote! {
+                                        #rep
+                                        let syn_generics::Product(syn_generics::MetaInfo(#r0, ..), #r1) = #binding;
+                                        let #r0 = { #new_rep };
+                                    };
+                                    let new_binding = r1;
+                                    (new_binding, destruct_impl)
+                                }
+                            });
                     let pat = fields.iter().enumerate().fold(quote! {}, |p, (idx, f)| {
-                        let r =
-                            Ident::new(format!("r{}", idx.to_string()).as_str(), Span::call_site());
+                        let r = Ident::new(format!("r{}", idx.to_string()).as_str(), Span::call_site());
                         let new_p = if f.ident.is_some() {
                             let ident = f.ident.as_ref().unwrap();
                             quote! { #ident : #r }
@@ -202,9 +191,7 @@ impl ToGenericTokens for Fields {
             Fields::Unit => {
                 quote! { syn_generics::Unit{} }
             }
-            Fields::Unnamed(FieldsUnnamed {
-                unnamed: fields, ..
-            })
+            Fields::Unnamed(FieldsUnnamed { unnamed: fields, .. })
             | Fields::Named(FieldsNamed { named: fields, .. }) => {
                 let field_rep = |idx: usize, field: &Field| {
                     let new_prefix = if field.ident.is_some() {
@@ -212,8 +199,7 @@ impl ToGenericTokens for Fields {
                     } else {
                         format!("{}{}", prefix, idx.to_string())
                     };
-                    let info_ident =
-                        Ident::new(format!("{}Info", new_prefix).as_str(), Span::call_site());
+                    let info_ident = Ident::new(format!("{}Info", new_prefix).as_str(), Span::call_site());
                     // Enum binding order fields in sequence (binding + 0, 1, 2, 3)
                     // Struct binding use field name (name, value)
                     let new_binding_name = if field.ident.is_some() {
@@ -228,19 +214,15 @@ impl ToGenericTokens for Fields {
                     }
                 };
                 // S1::<Info, _>::new or Product::new(..)
-                fields
-                    .iter()
-                    .rev()
-                    .enumerate()
-                    .fold(quote! {}, |rep, (idx, f)| {
-                        let new_idx = fields.len() - idx - 1;
-                        let new_rep = field_rep(new_idx, f);
-                        if idx == 0 {
-                            new_rep
-                        } else {
-                            quote! { syn_generics::Product::new(#new_rep, #rep) }
-                        }
-                    })
+                fields.iter().rev().enumerate().fold(quote! {}, |rep, (idx, f)| {
+                    let new_idx = fields.len() - idx - 1;
+                    let new_rep = field_rep(new_idx, f);
+                    if idx == 0 {
+                        new_rep
+                    } else {
+                        quote! { syn_generics::Product::new(#new_rep, #rep) }
+                    }
+                })
             }
         }
     }
@@ -249,12 +231,9 @@ impl ToGenericTokens for Fields {
 impl ToGenericTokens for DataEnum {
     fn to_rep(&self, prefix: String, generic: Option<&Generics>) -> (TokenStream, TokenStream) {
         if self.variants.len() == 0 {
-            return (
-                quote! {},
-                quote! {
-                    syn_generics::Void
-                },
-            );
+            return (quote! {}, quote! {
+                syn_generics::Void
+            });
         }
 
         self.variants
@@ -310,45 +289,35 @@ impl ToGenericTokens for DataEnum {
             }
         } else {
             // match r => Sum::L, Sum::R
-            self.variants
-                .iter()
-                .rev()
-                .enumerate()
-                .fold(quote! {}, |rep, (idx, v)| {
-                    let new_idx = self.variants.len() - idx - 1;
-                    let mut r0 = Ident::new(
-                        format!("r{}", new_idx.to_string()).as_str(),
-                        Span::call_site(),
-                    );
-                    if new_idx == 0 {
-                        r0 = binding.clone();
+            self.variants.iter().rev().enumerate().fold(quote! {}, |rep, (idx, v)| {
+                let new_idx = self.variants.len() - idx - 1;
+                let mut r0 = Ident::new(format!("r{}", new_idx.to_string()).as_str(), Span::call_site());
+                if new_idx == 0 {
+                    r0 = binding.clone();
+                }
+                let new_prefix = format!("{}::{}", prefix, v.ident.to_string());
+                let sub_rep = v.fields.to_from_rep(new_prefix, r0.clone());
+                if idx == 0 {
+                    // C1<Info, T>
+                    quote! {
+                        let syn_generics::MetaInfo(#r0, ..) = #r0;
+                        { #sub_rep }
                     }
-                    let new_prefix = format!("{}::{}", prefix, v.ident.to_string());
-                    let sub_rep = v.fields.to_from_rep(new_prefix, r0.clone());
-                    if idx == 0 {
-                        // C1<Info, T>
-                        quote! {
-                            let syn_generics::MetaInfo(#r0, ..) = #r0;
-                            { #sub_rep }
-                        }
-                    } else {
-                        // Sum::L(C1<..>), Sum::R(Sum<..>)
-                        let r1 = Ident::new(
-                            format!("r{}", (new_idx + 1).to_string()).as_str(),
-                            Span::call_site(),
-                        );
-                        quote! {
-                            match #r0 {
-                                syn_generics::Sum::L(syn_generics::MetaInfo(#r0, ..)) => {
-                                    #sub_rep
-                                },
-                                syn_generics::Sum::R(#r1) => {
-                                    #rep
-                                }
+                } else {
+                    // Sum::L(C1<..>), Sum::R(Sum<..>)
+                    let r1 = Ident::new(format!("r{}", (new_idx + 1).to_string()).as_str(), Span::call_site());
+                    quote! {
+                        match #r0 {
+                            syn_generics::Sum::L(syn_generics::MetaInfo(#r0, ..)) => {
+                                #sub_rep
+                            },
+                            syn_generics::Sum::R(#r1) => {
+                                #rep
                             }
                         }
                     }
-                })
+                }
+            })
         }
     }
 
@@ -370,56 +339,45 @@ impl ToGenericTokens for DataEnum {
             }
         };
 
-        self.variants
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(quote! {}, |rep, (idx, v)| {
-                let new_idx = self.variants.len() - idx - 1;
-                let mut r0 = Ident::new(
-                    format!("r{}", new_idx.to_string()).as_str(),
+        self.variants.iter().rev().enumerate().fold(quote! {}, |rep, (idx, v)| {
+            let new_idx = self.variants.len() - idx - 1;
+            let mut r0 = Ident::new(format!("r{}", new_idx.to_string()).as_str(), Span::call_site());
+            if new_idx == 0 {
+                r0 = binding.clone();
+            }
+            let p: Path = parse_str(format!("{}::{}", prefix, v.ident.to_string()).as_str()).unwrap();
+            let names = v.fields.iter().enumerate().map(|(idx, f)| {
+                f.ident.clone().unwrap_or(Ident::new(
+                    format!("{}{}", binding.to_string(), idx.to_string()).as_str(),
                     Span::call_site(),
-                );
-                if new_idx == 0 {
-                    r0 = binding.clone();
-                }
-                let p: Path =
-                    parse_str(format!("{}::{}", prefix, v.ident.to_string()).as_str()).unwrap();
-                let names = v.fields.iter().enumerate().map(|(idx, f)| {
-                    f.ident.clone().unwrap_or(Ident::new(
-                        format!("{}{}", binding.to_string(), idx.to_string()).as_str(),
-                        Span::call_site(),
-                    ))
-                });
-                let names = match v.fields {
-                    Fields::Named(..) => quote! { { #(#names,)* } },
-                    Fields::Unnamed(..) => quote! { ( #(#names,)* ) },
-                    Fields::Unit => quote! {},
-                };
-                let sub_rep = format_variant(idx, v);
-                if idx == 0 {
-                    quote! {
-                        match #r0 {
-                            #p #names => { #sub_rep }
-                            _ => unreachable!()
-                        }
-                    }
-                } else {
-                    let r1 = Ident::new(
-                        format!("r{}", (new_idx + 1).to_string()).as_str(),
-                        Span::call_site(),
-                    );
-                    quote! {
-                        match #r0 {
-                            #p #names => syn_generics::Sum::L({ #sub_rep }),
-                            #r1 => syn_generics::Sum::R({
-                                #rep
-                            }),
-                            _ => unreachable!()
-                        }
+                ))
+            });
+            let names = match v.fields {
+                Fields::Named(..) => quote! { { #(#names,)* } },
+                Fields::Unnamed(..) => quote! { ( #(#names,)* ) },
+                Fields::Unit => quote! {},
+            };
+            let sub_rep = format_variant(idx, v);
+            if idx == 0 {
+                quote! {
+                    match #r0 {
+                        #p #names => { #sub_rep }
+                        _ => unreachable!()
                     }
                 }
-            })
+            } else {
+                let r1 = Ident::new(format!("r{}", (new_idx + 1).to_string()).as_str(), Span::call_site());
+                quote! {
+                    match #r0 {
+                        #p #names => syn_generics::Sum::L({ #sub_rep }),
+                        #r1 => syn_generics::Sum::R({
+                            #rep
+                        }),
+                        _ => unreachable!()
+                    }
+                }
+            }
+        })
     }
 }
 
